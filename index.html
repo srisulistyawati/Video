@@ -2,141 +2,119 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Tonton Video Penelitian</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Pembelajaran</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #000000;
       text-align: center;
-      padding: 40px;
+      padding: 20px;
     }
-    #nextBtn {
+
+    video {
+      width: 360px;
+      height: auto;
+      border: 1px solid #ccc;
+    }
+
+    #seekwarn {
       display: none;
-      margin-top: 28px;
-      padding: 12px 40px;
-      font-size: 1.13rem;
-      border-radius: 30px;
-      background: #6a36ff;
-      color: white;
+      margin-top: 10px;
+      color: red;
+      font-weight: bold;
+    }
+
+    #playBtn, #nextBtn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
       border: none;
+      border-radius: 6px;
       cursor: pointer;
     }
-    h2 { color: #ffffff; }
 
-    .video-wrapper {
-      width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
-      box-sizing: border-box;
+    #playBtn {
+      background-color: #28a745;
+      color: white;
     }
-    video {
-      width: 100%;
-      height: auto;
-      outline: none;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px #0001;
-      background: #222;
-    }
-    /* Hilangkan seek bar, tombol back/forward, playback speed (hanya support Chrome/Edge/Android) */
-    video::-webkit-media-controls-seek-back-button,
-    video::-webkit-media-controls-seek-forward-button,
-    video::-webkit-media-controls-timeline,
-    video::-webkit-media-controls-playback-rate-button {
-      display: none !important;
-    }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .video-wrapper { max-width: 100vw; }
-    }
-    .warn {
-      color: #f5a623;
-      font-size: 1rem;
-      margin-bottom: 10px;
+
+    #nextBtn {
       display: none;
+      background-color: #007bff;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <h2>Tonton Video Berikut Sampai Selesai</h2>
-  <div class="video-wrapper">
-    <div id="seekwarn" class="warn">⚠️ Tidak boleh maju/mundur sebelum selesai!</div>
-    <div id="ioswarn" class="warn">⚠️ Pada perangkat iOS, replay video tidak bisa dikunci. Mohon untuk tidak melakukan skip saat replay!</div>
-    <video id="vid" controls playsinline webkit-playsinline>
-      <source src="https://res.cloudinary.com/dhnnlvllh/video/upload/v1752333541/vidio1_t3vdik.mp4" type="video/mp4">
-      Video tidak dapat diputar.
-    </video>
-  </div>
+
+  <h2>Tonton Video Sampai Selesai</h2>
+
+  <video id="vid" playsinline webkit-playsinline>
+    <source src="https://res.cloudinary.com/dhnnlvllh/video/upload/v1752333541/vidio1_t3vdik.mp4" type="video/mp4">
+    Browser Anda tidak mendukung video.
+  </video>
+
   <br>
-  <button id="nextBtn" onclick="goToForm()">Lanjut ke Google Form</button>
+  <button id="playBtn">▶️ Play</button>
+
+  <div id="seekwarn">⛔ Jangan skip videonya!</div>
+
+  <button id="nextBtn" onclick="goToForm()">Lanjut ke Form</button>
 
   <script>
-    // Deteksi iOS
-    function isIOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    }
     const video = document.getElementById('vid');
+    const playBtn = document.getElementById('playBtn');
     const nextBtn = document.getElementById('nextBtn');
     const seekwarn = document.getElementById('seekwarn');
-    const ioswarn = document.getElementById('ioswarn');
+
     let lastTime = 0;
     let seeking = false;
     let allowSeek = false;
 
-    // Cegah skip di browser yang support dan deteksi iOS
+    window.onload = function() {
+      playBtn.style.display = 'inline-block';
+    };
+
+    playBtn.onclick = function() {
+      video.play();
+      playBtn.style.display = 'none';
+    };
+
     video.addEventListener('timeupdate', function() {
       if (!seeking) lastTime = video.currentTime;
     });
 
     video.addEventListener('seeking', function() {
-      // Sebelum video selesai, cegah seek di semua device (termasuk iOS)
-      if (!allowSeek && Math.abs(video.currentTime - lastTime) > 2) {
+      if (!allowSeek && Math.abs(video.currentTime - lastTime) > 1) {
         seeking = true;
-        // Cegah seek (khusus Chrome/Edge/Android)
-        if (!isIOS()) {
-          video.currentTime = lastTime;
-        } else {
-          // Untuk iOS, kembalikan ke posisi sebelumnya setelah sedikit delay
-          setTimeout(function() {
-            video.currentTime = lastTime;
-          }, 50);
-        }
-        // Tampilkan peringatan setiap kali user mencoba seek
+        video.currentTime = lastTime;
         seekwarn.style.display = 'block';
         setTimeout(() => seekwarn.style.display = 'none', 1500);
         seeking = false;
       }
     });
 
-    // Cegah perubahan playback speed
     video.addEventListener('ratechange', function() {
       if (video.playbackRate !== 1) {
         video.playbackRate = 1;
       }
     });
 
-    // Video selesai: tombol lanjut muncul, boleh replay/seek
     video.onended = function() {
+      allowSeek = true;
       nextBtn.style.display = "inline-block";
       window.onbeforeunload = null;
-      allowSeek = true; // Setelah selesai, user boleh replay dan seek
-      history.pushState(null, null, location.href);
-      if(isIOS()) ioswarn.style.display = "block"; // Warning tetap di atas video setelah video selesai di iOS
-    }
+    };
 
-    // ANTI BACK (di halaman video)
     window.history.pushState(null, null, window.location.href);
     window.onpopstate = function(event) {
       window.history.pushState(null, null, window.location.href);
       alert('Anda harus menonton video sampai selesai sebelum kembali!');
     };
 
-    // Cegah close tab (hanya warning)
     window.onbeforeunload = function() {
       return "Anda harus menonton video sampai selesai sebelum meninggalkan halaman ini!";
     };
 
-    // Redirect ke GForm: buka di tab baru lalu tutup tab video
     function goToForm() {
       window.open("https://docs.google.com/forms/d/e/1FAIpQLSe8qB8SqK6npqJEp_04z78sFhFvBKGDRGwEVdHPJy_nLbykng/viewform?usp=dialog", '_blank');
       window.close();
